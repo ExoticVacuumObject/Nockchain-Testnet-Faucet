@@ -8,6 +8,11 @@ import { buildServer } from "./server.js";
 import { startTreasuryWatcher } from "./treasury.js";
 import { applyBalanceSnapshot, balanceFromResponse } from "./donations.js";
 
+function intEnv(name: string, fallback: number): number {
+  const n = Number(process.env[name]);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 const cfg = loadConfig();
 const db = openDb(cfg.dbPath);
 clearPendingClaims(db); // release orphaned reserves left by any prior crash
@@ -24,8 +29,8 @@ const miner = makeMiner({
   minerBin: process.env.MINER_BIN ?? "true",
   minerArgs: (process.env.MINER_ARGS ?? "").split(" ").filter(Boolean),
   cwd: process.env.MINER_CWD ?? ".",
-  pollMs: Number(process.env.MINER_POLL_MS ?? 10_000),
-  maxMineMs: Number(process.env.MAX_MINE_MS ?? 30 * 60_000),
+  pollMs: intEnv("MINER_POLL_MS", 10_000),
+  maxMineMs: intEnv("MAX_MINE_MS", 30 * 60_000),
 });
 
 const price = makePriceCache({ url: cfg.priceUrl, ttlMs: 5 * 60_000 });
@@ -40,14 +45,21 @@ const watcher = startTreasuryWatcher({
 
 const app = buildServer({ db, wallet, price, config: cfg, treasuryNicks: watcher.lastNicks });
 
+let pollBusy = false;
 async function pollDonations(): Promise<void> {
+  if (pollBusy) return;
+  pollBusy = true;
   try {
-    const res = await fetch(`${cfg.balanceApiUrl}/balance/${cfg.donateAddress}`);
+    const res = await fetch(`${cfg.balanceApiUrl}/balance/${cfg.donateAddress}`, {
+      signal: AbortSignal.timeout(10_000),
+    });
     const body = await res.json().catch(() => null);
     const balance = balanceFromResponse(res.ok, body);
     if (balance !== null) applyBalanceSnapshot(db, balance, Math.floor(Date.now() / 1000));
   } catch (err) {
     console.error(`donation poll: ${err instanceof Error ? err.message : String(err)}`);
+  } finally {
+    pollBusy = false;
   }
 }
 void pollDonations();
@@ -68,6 +80,13 @@ function shutdown(signal: string): void {
 }
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("unhandledRejection", (reason) => {
+  console.error(`unhandled rejection: ${reason instanceof Error ? reason.message : String(reason)}`);
+});
+process.on("uncaughtException", (err) => {
+  console.error(`uncaught exception: ${err.message}`);
+  shutdown("uncaughtException");
+});
 
 app
   .listen({ port: cfg.port, host: "127.0.0.1" })
