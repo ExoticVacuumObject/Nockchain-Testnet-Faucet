@@ -23,7 +23,8 @@ export function buildServer(deps: {
   now?: () => number;
 }): FastifyInstance {
   const now = deps.now ?? (() => Math.floor(Date.now() / 1000));
-  const app = Fastify({ trustProxy: true });
+  // Trust X-Forwarded-For only from the local reverse proxy, never a direct client.
+  const app = Fastify({ trustProxy: "loopback" });
 
   app.register(fastifyStatic, { root: join(here, "..", "public"), prefix: "/" });
 

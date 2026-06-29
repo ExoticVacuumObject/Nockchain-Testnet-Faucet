@@ -10,7 +10,7 @@ export function startTreasuryWatcher(deps: {
 }): { stop: () => void; lastNicks: () => number } {
   let busy = false;
   let last = 0;
-  const timer = setInterval(async () => {
+  async function tick(): Promise<void> {
     if (busy) return;
     busy = true;
     try {
@@ -24,6 +24,8 @@ export function startTreasuryWatcher(deps: {
     } finally {
       busy = false;
     }
-  }, deps.intervalMs);
+  }
+  const timer = setInterval(tick, deps.intervalMs);
+  void tick(); // read immediately so stats are populated and refill starts without waiting a full interval
   return { stop: () => clearInterval(timer), lastNicks: () => last };
 }
