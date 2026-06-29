@@ -10,7 +10,7 @@ import { applyBalanceSnapshot, balanceFromResponse } from "./donations.js";
 
 function intEnv(name: string, fallback: number): number {
   const n = Number(process.env[name]);
-  return Number.isFinite(n) ? n : fallback;
+  return Number.isFinite(n) && n > 0 ? n : fallback;
 }
 
 const cfg = loadConfig();
@@ -66,16 +66,17 @@ void pollDonations();
 const donationTimer = setInterval(pollDonations, cfg.donationPollMs);
 
 let shuttingDown = false;
-function shutdown(signal: string): void {
+function shutdown(signal: string, code = 0): void {
   if (shuttingDown) return;
   shuttingDown = true;
   console.log(`received ${signal}, shutting down`);
   watcher.stop();
   miner.stop();
   clearInterval(donationTimer);
+  setTimeout(() => process.exit(code), 5000).unref(); // force exit if close hangs
   app.close().finally(() => {
     db.close();
-    process.exit(0);
+    process.exit(code);
   });
 }
 process.on("SIGTERM", () => shutdown("SIGTERM"));
@@ -85,7 +86,7 @@ process.on("unhandledRejection", (reason) => {
 });
 process.on("uncaughtException", (err) => {
   console.error(`uncaught exception: ${err.message}`);
-  shutdown("uncaughtException");
+  shutdown("uncaughtException", 1);
 });
 
 app
