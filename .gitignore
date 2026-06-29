@@ -1,0 +1,14 @@
+node_modules/
+dist/
+_design/
+.env
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+keys/
+*.export
+Nock Faucet logo design/
+Nock Faucet logo design.zip
+nock-faucet.md
+.remember/
