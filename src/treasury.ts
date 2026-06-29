@@ -17,8 +17,8 @@ export function startTreasuryWatcher(deps: {
       if (shouldMine(bal, deps.floorNicks)) {
         await deps.miner.mineUntil(deps.ceilNicks, () => deps.wallet.treasuryNicks());
       }
-    } catch {
-      // transient; next tick retries
+    } catch (err) {
+      console.error(`treasury watcher: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       busy = false;
     }
