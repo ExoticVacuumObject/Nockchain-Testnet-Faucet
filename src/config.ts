@@ -1,0 +1,51 @@
+export interface Config {
+  port: number;
+  claimAmount: number;
+  cooldownHours: number;
+  treasuryFloor: number;
+  treasuryCeil: number;
+  donateAddress: string;
+  monthlyCostUsd: number;
+  nicksPerNock: number;
+  dbPath: string;
+  faucetPkh: string;
+  balanceApiUrl: string;
+  priceUrl: string;
+  walletBin: string;
+  nodeSocket: string;
+  treasuryPollMs: number;
+  donationPollMs: number;
+}
+
+function req(env: NodeJS.ProcessEnv, key: string): string {
+  const v = env[key];
+  if (v === undefined || v === "") throw new Error(`missing env: ${key}`);
+  return v;
+}
+
+function num(env: NodeJS.ProcessEnv, key: string): number {
+  const n = Number(req(env, key));
+  if (!Number.isFinite(n)) throw new Error(`invalid number env: ${key}`);
+  return n;
+}
+
+export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
+  return {
+    port: num(env, "PORT"),
+    claimAmount: num(env, "CLAIM_AMOUNT"),
+    cooldownHours: num(env, "COOLDOWN_HOURS"),
+    treasuryFloor: num(env, "TREASURY_FLOOR"),
+    treasuryCeil: num(env, "TREASURY_CEIL"),
+    donateAddress: req(env, "DONATE_ADDRESS"),
+    monthlyCostUsd: num(env, "MONTHLY_COST_USD"),
+    nicksPerNock: num(env, "NICKS_PER_NOCK"),
+    dbPath: req(env, "DB_PATH"),
+    faucetPkh: req(env, "FAUCET_PKH"),
+    balanceApiUrl: req(env, "BALANCE_API_URL"),
+    priceUrl: req(env, "PRICE_URL"),
+    walletBin: req(env, "WALLET_BIN"),
+    nodeSocket: req(env, "NODE_SOCKET"),
+    treasuryPollMs: num(env, "TREASURY_POLL_MS"),
+    donationPollMs: num(env, "DONATION_POLL_MS"),
+  };
+}
