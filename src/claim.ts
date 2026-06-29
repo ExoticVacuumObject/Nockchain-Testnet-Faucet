@@ -23,10 +23,11 @@ export async function handleClaim(
   let txid: string;
   try {
     txid = await deps.wallet.send(input.address, deps.claimAmount);
-  } catch {
+  } catch (err) {
     // Free the slot so the user can retry. Duplicate fakenet tokens are harmless,
     // and an outage should not lock people out for the full cooldown.
     releaseClaim(deps.db, id);
+    console.error(`claim send failed: ${err instanceof Error ? err.message : String(err)}`);
     return { ok: false, error: "send_failed" };
   }
   finalizeClaim(deps.db, id, txid);

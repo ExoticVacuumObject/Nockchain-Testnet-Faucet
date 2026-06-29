@@ -56,6 +56,12 @@ export function releaseClaim(db: DB, id: number): void {
   db.prepare("DELETE FROM claims WHERE id = ?").run(id);
 }
 
+// Delete reserved-but-unfinalized rows. Run at startup: no send survives a restart,
+// so any pending row is orphaned — clearing it frees the slot and stops accumulation.
+export function clearPendingClaims(db: DB): void {
+  db.prepare("DELETE FROM claims WHERE txid = ''").run();
+}
+
 export function totalDistributed(db: DB): number {
   const row = db
     .prepare("SELECT COALESCE(SUM(amount),0) AS s FROM claims WHERE txid != ''")
