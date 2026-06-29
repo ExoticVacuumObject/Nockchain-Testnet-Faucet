@@ -4,7 +4,7 @@ export type Runner = (bin: string, args: string[]) => Promise<string>;
 
 const defaultRun: Runner = (bin, args) =>
   new Promise((resolve, reject) => {
-    execFile(bin, args, { timeout: 60_000 }, (err, stdout, stderr) => {
+    execFile(bin, args, { timeout: 60_000, maxBuffer: 10 * 1024 * 1024 }, (err, stdout, stderr) => {
       if (err) reject(new Error(`${bin} failed: ${stderr || err.message}`));
       else resolve(stdout);
     });
