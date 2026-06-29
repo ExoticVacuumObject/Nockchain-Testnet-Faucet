@@ -7,15 +7,17 @@ export function startTreasuryWatcher(deps: {
   floorNicks: number;
   ceilNicks: number;
   intervalMs: number;
-}): () => void {
+}): { stop: () => void; lastNicks: () => number } {
   let busy = false;
+  let last = 0;
   const timer = setInterval(async () => {
     if (busy) return;
     busy = true;
     try {
-      const bal = await deps.wallet.treasuryNicks();
-      if (shouldMine(bal, deps.floorNicks)) {
+      last = await deps.wallet.treasuryNicks();
+      if (shouldMine(last, deps.floorNicks)) {
         await deps.miner.mineUntil(deps.ceilNicks, () => deps.wallet.treasuryNicks());
+        last = await deps.wallet.treasuryNicks();
       }
     } catch (err) {
       console.error(`treasury watcher: ${err instanceof Error ? err.message : String(err)}`);
@@ -23,5 +25,5 @@ export function startTreasuryWatcher(deps: {
       busy = false;
     }
   }, deps.intervalMs);
-  return () => clearInterval(timer);
+  return { stop: () => clearInterval(timer), lastNicks: () => last };
 }
