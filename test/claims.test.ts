@@ -15,6 +15,14 @@ test("cooldown blocks repeat address and IP within window", () => {
   expect(lastClaimAt(db, "addrA", "2.2.2.2")).toBe(now);
 });
 
+test("cooldown allows at exactly the window boundary", () => {
+  const db = openDb(":memory:");
+  const now = 1_000_000;
+  recordClaim(db, { address: "addrA", ip: "1.1.1.1", amount: 1000, txid: "t1", at: now });
+  expect(canClaim(db, "addrA", "1.1.1.1", now + DAY - 1, DAY)).toBe(false); // one second short
+  expect(canClaim(db, "addrA", "1.1.1.1", now + DAY, DAY)).toBe(true); // exactly elapsed
+});
+
 test("aggregates", () => {
   const db = openDb(":memory:");
   recordClaim(db, { address: "a", ip: "i", amount: 1000, txid: "t", at: 100 });
