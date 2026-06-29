@@ -24,13 +24,14 @@ function req(env: NodeJS.ProcessEnv, key: string): string {
 }
 
 function num(env: NodeJS.ProcessEnv, key: string): number {
-  const n = Number(req(env, key));
-  if (!Number.isFinite(n)) throw new Error(`invalid number env: ${key}`);
+  const raw = req(env, key).trim();
+  const n = Number(raw);
+  if (raw === "" || !Number.isFinite(n)) throw new Error(`invalid number env: ${key}`);
   return n;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
-  return {
+  const cfg: Config = {
     port: num(env, "PORT"),
     claimAmount: num(env, "CLAIM_AMOUNT"),
     cooldownHours: num(env, "COOLDOWN_HOURS"),
@@ -48,4 +49,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     treasuryPollMs: num(env, "TREASURY_POLL_MS"),
     donationPollMs: num(env, "DONATION_POLL_MS"),
   };
+  if (cfg.claimAmount <= 0) throw new Error("CLAIM_AMOUNT must be greater than 0");
+  if (cfg.treasuryFloor >= cfg.treasuryCeil) {
+    throw new Error("TREASURY_FLOOR must be less than TREASURY_CEIL");
+  }
+  return cfg;
 }

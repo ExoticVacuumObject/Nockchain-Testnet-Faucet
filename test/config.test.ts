@@ -22,3 +22,17 @@ test("throws on missing required field", () => {
   const { DONATE_ADDRESS, ...rest } = base as any;
   expect(() => loadConfig(rest)).toThrow(/DONATE_ADDRESS/);
 });
+
+test("throws on whitespace-only number", () => {
+  expect(() => loadConfig({ ...base, PORT: "   " } as any)).toThrow(/PORT/);
+});
+
+test("throws when treasury floor is not below ceil", () => {
+  expect(() =>
+    loadConfig({ ...base, TREASURY_FLOOR: "1000000", TREASURY_CEIL: "1000000" } as any)
+  ).toThrow(/TREASURY_FLOOR/);
+});
+
+test("throws on non-positive claim amount", () => {
+  expect(() => loadConfig({ ...base, CLAIM_AMOUNT: "0" } as any)).toThrow(/CLAIM_AMOUNT/);
+});
