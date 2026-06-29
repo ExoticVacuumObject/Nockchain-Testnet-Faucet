@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { openDb } from "../src/db.js";
-import { applyBalanceSnapshot, monthlyDonationNicks, monthStartEpoch } from "../src/donations.js";
+import { applyBalanceSnapshot, monthlyDonationNicks, monthStartEpoch, balanceFromResponse } from "../src/donations.js";
 
 function donationRows(db: ReturnType<typeof openDb>): number {
   return (db.prepare("SELECT COUNT(*) AS c FROM donations").get() as { c: number }).c;
@@ -48,6 +48,20 @@ test("monthly sum filters by month start", () => {
   const ms = monthStartEpoch(1_700_000_000);
   applyBalanceSnapshot(db, 200, ms + 5);
   expect(monthlyDonationNicks(db, ms)).toBe(100);
+});
+
+test("balanceFromResponse accepts a valid 200 payload", () => {
+  expect(balanceFromResponse(true, { balance: 1000, height: 50 })).toBe(1000);
+  expect(balanceFromResponse(true, { balance: 1000 })).toBe(1000); // height optional
+});
+
+test("balanceFromResponse rejects bad status, shape, balance, or height", () => {
+  expect(balanceFromResponse(false, { balance: 1000 })).toBeNull(); // non-200
+  expect(balanceFromResponse(true, null)).toBeNull();
+  expect(balanceFromResponse(true, {})).toBeNull(); // missing balance
+  expect(balanceFromResponse(true, { balance: "5" })).toBeNull(); // wrong type
+  expect(balanceFromResponse(true, { balance: -1 })).toBeNull(); // negative
+  expect(balanceFromResponse(true, { balance: 1000, height: 0 })).toBeNull(); // bad height
 });
 
 test("monthStartEpoch is UTC midnight on the 1st", () => {

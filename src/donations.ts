@@ -27,6 +27,17 @@ export function monthlyDonationNicks(db: DB, monthStartEpoch: number): number {
   return row.s;
 }
 
+// Validate a balance-api response before trusting it. Returns the balance in nicks,
+// or null if the response should be skipped (bad status/shape/balance/height). Guards
+// the phantom-donation case where a transient bad read would register a giant delta.
+export function balanceFromResponse(ok: boolean, body: unknown): number | null {
+  if (!ok || typeof body !== "object" || body === null) return null;
+  const b = body as { balance?: unknown; height?: unknown };
+  if (typeof b.balance !== "number" || !Number.isFinite(b.balance) || b.balance < 0) return null;
+  if (b.height !== undefined && (typeof b.height !== "number" || !(b.height > 0))) return null;
+  return b.balance;
+}
+
 export function monthStartEpoch(now: number): number {
   const d = new Date(now * 1000);
   return Math.floor(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1) / 1000);
