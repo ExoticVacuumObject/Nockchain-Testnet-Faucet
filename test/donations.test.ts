@@ -34,6 +34,14 @@ test("a non-finite read is ignored and does not corrupt the baseline", () => {
   expect(donationRows(db)).toBe(1);
 });
 
+test("a negative read is ignored and does not corrupt the baseline", () => {
+  const db = openDb(":memory:");
+  applyBalanceSnapshot(db, 1000, 100); // baseline 1000
+  expect(applyBalanceSnapshot(db, -5, 200)).toBe(0); // impossible balance
+  expect(donationRows(db)).toBe(0);
+  expect(applyBalanceSnapshot(db, 1500, 300)).toBe(500); // baseline survived
+});
+
 test("monthly sum filters by month start", () => {
   const db = openDb(":memory:");
   applyBalanceSnapshot(db, 100, 10);

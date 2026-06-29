@@ -4,7 +4,7 @@ import { kvGet, kvSet } from "./db.js";
 const LAST_BALANCE_KEY = "donate_balance";
 
 export function applyBalanceSnapshot(db: DB, currentNicks: number, at: number): number {
-  if (!Number.isFinite(currentNicks)) return 0; // ignore bad reads; never touch the baseline
+  if (!Number.isFinite(currentNicks) || currentNicks < 0) return 0; // ignore bad reads; never touch the baseline
   const stored = kvGet(db, LAST_BALANCE_KEY);
   if (stored === null) {
     kvSet(db, LAST_BALANCE_KEY, String(currentNicks));
