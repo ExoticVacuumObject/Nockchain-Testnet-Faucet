@@ -50,6 +50,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     donationPollMs: num(env, "DONATION_POLL_MS"),
   };
   if (cfg.claimAmount <= 0) throw new Error("CLAIM_AMOUNT must be greater than 0");
+  if (cfg.monthlyCostUsd <= 0) throw new Error("MONTHLY_COST_USD must be greater than 0");
+  if (cfg.nicksPerNock <= 0) throw new Error("NICKS_PER_NOCK must be greater than 0");
   if (cfg.treasuryFloor >= cfg.treasuryCeil) {
     throw new Error("TREASURY_FLOOR must be less than TREASURY_CEIL");
   }

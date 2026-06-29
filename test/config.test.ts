@@ -36,3 +36,11 @@ test("throws when treasury floor is not below ceil", () => {
 test("throws on non-positive claim amount", () => {
   expect(() => loadConfig({ ...base, CLAIM_AMOUNT: "0" } as any)).toThrow(/CLAIM_AMOUNT/);
 });
+
+test("throws on zero monthly cost", () => {
+  expect(() => loadConfig({ ...base, MONTHLY_COST_USD: "0" } as any)).toThrow(/MONTHLY_COST_USD/);
+});
+
+test("throws on zero nicks per nock", () => {
+  expect(() => loadConfig({ ...base, NICKS_PER_NOCK: "0" } as any)).toThrow(/NICKS_PER_NOCK/);
+});
