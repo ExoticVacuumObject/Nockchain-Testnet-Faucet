@@ -55,12 +55,15 @@ export function buildServer(deps: {
 
   app.get("/api/funding", async () => {
     const priceUsd = await deps.price.get().catch(() => 0);
-    return fundingStatus({
-      monthlyDonationNicks: monthlyDonationNicks(deps.db, monthStartEpoch(now())),
-      nicksPerNock: deps.config.nicksPerNock,
-      priceUsd,
-      monthlyCostUsd: deps.config.monthlyCostUsd,
-    });
+    return {
+      ...fundingStatus({
+        monthlyDonationNicks: monthlyDonationNicks(deps.db, monthStartEpoch(now())),
+        nicksPerNock: deps.config.nicksPerNock,
+        priceUsd,
+        monthlyCostUsd: deps.config.monthlyCostUsd,
+      }),
+      donateAddress: deps.config.donateAddress,
+    };
   });
 
   return app;

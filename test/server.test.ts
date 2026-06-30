@@ -63,8 +63,9 @@ test("stats reports the cached treasury without calling the wallet", async () =>
   expect(wallet.treasuryNicks).not.toHaveBeenCalled();
 });
 
-test("funding reports the configured cost", async () => {
+test("funding reports the configured cost and donate address", async () => {
   const app = make();
   const res = await app.inject({ method: "GET", url: "/api/funding" });
   expect(res.json().monthlyCostUsd).toBe(6);
+  expect(res.json().donateAddress).toBe(VALID);
 });
