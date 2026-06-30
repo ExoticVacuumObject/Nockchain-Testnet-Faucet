@@ -24,7 +24,15 @@ export function buildServer(deps: {
 }): FastifyInstance {
   const now = deps.now ?? (() => Math.floor(Date.now() / 1000));
   // Trust X-Forwarded-For only from the local reverse proxy, never a direct client.
-  const app = Fastify({ trustProxy: "loopback" });
+  // requestTimeout caps slow-request (slowloris) sockets.
+  const app = Fastify({ trustProxy: "loopback", requestTimeout: 30000 });
+
+  // Never leak internal error detail (SQLite messages, paths) to clients.
+  app.setErrorHandler((err, _req, reply) => {
+    const status = err.statusCode && err.statusCode >= 400 && err.statusCode < 500 ? err.statusCode : 500;
+    if (status >= 500) console.error(`request error: ${err.message}`);
+    reply.code(status).send({ error: status >= 500 ? "internal error" : "bad request" });
+  });
 
   app.register(fastifyStatic, { root: join(here, "..", "public"), prefix: "/" });
 

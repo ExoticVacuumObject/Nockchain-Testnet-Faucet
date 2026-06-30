@@ -6,15 +6,24 @@ function donationRows(db: ReturnType<typeof openDb>): number {
   return (db.prepare("SELECT COUNT(*) AS c FROM donations").get() as { c: number }).c;
 }
 
-test("seeds baseline then records positive deltas only", () => {
+test("seeds baseline then records positive deltas above the high-water mark", () => {
   const db = openDb(":memory:");
   expect(applyBalanceSnapshot(db, 1000, 100)).toBe(0);    // first snapshot seeds baseline, no donation
   expect(donationRows(db)).toBe(0);
-  expect(applyBalanceSnapshot(db, 1500, 200)).toBe(500);  // +500
+  expect(applyBalanceSnapshot(db, 1500, 200)).toBe(500);  // +500, high-water 1500
   expect(applyBalanceSnapshot(db, 1500, 300)).toBe(0);    // no change
-  expect(applyBalanceSnapshot(db, 1200, 400)).toBe(0);    // spend, ignored
-  expect(applyBalanceSnapshot(db, 1700, 500)).toBe(500);  // +500 again
+  expect(applyBalanceSnapshot(db, 1200, 400)).toBe(0);    // dip, ignored, high-water stays 1500
+  expect(applyBalanceSnapshot(db, 1700, 500)).toBe(200);  // only the amount above the 1500 high-water
   expect(donationRows(db)).toBe(2);
+});
+
+test("a transient dip and recovery does not manufacture a phantom donation", () => {
+  const db = openDb(":memory:");
+  applyBalanceSnapshot(db, 1000, 100);                    // baseline 1000
+  expect(applyBalanceSnapshot(db, 800, 200)).toBe(0);    // transient low read, no donation
+  expect(applyBalanceSnapshot(db, 1000, 300)).toBe(0);   // recovery to prior level is NOT a donation
+  expect(donationRows(db)).toBe(0);
+  expect(applyBalanceSnapshot(db, 1100, 400)).toBe(100); // genuine donation above the high-water
 });
 
 test("baseline of zero is distinct from no baseline", () => {

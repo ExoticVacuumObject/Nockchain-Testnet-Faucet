@@ -44,3 +44,12 @@ test("throws on zero monthly cost", () => {
 test("throws on zero nicks per nock", () => {
   expect(() => loadConfig({ ...base, NICKS_PER_NOCK: "0" } as any)).toThrow(/NICKS_PER_NOCK/);
 });
+
+test("throws on zero cooldown (would disable the only rate limit)", () => {
+  expect(() => loadConfig({ ...base, COOLDOWN_HOURS: "0" } as any)).toThrow(/COOLDOWN_HOURS/);
+});
+
+test("throws on non-positive poll intervals (would busy-loop)", () => {
+  expect(() => loadConfig({ ...base, TREASURY_POLL_MS: "0" } as any)).toThrow(/TREASURY_POLL_MS/);
+  expect(() => loadConfig({ ...base, DONATION_POLL_MS: "-1" } as any)).toThrow(/DONATION_POLL_MS/);
+});

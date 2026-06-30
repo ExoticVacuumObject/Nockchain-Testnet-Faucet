@@ -63,6 +63,21 @@ test("stats reports the cached treasury without calling the wallet", async () =>
   expect(wallet.treasuryNicks).not.toHaveBeenCalled();
 });
 
+test("an unexpected route error returns a generic 500 with no internal detail", async () => {
+  const db = openDb(":memory:");
+  const wallet = { send: vi.fn(async () => "tx1"), treasuryNicks: vi.fn() };
+  const price = { get: vi.fn(async () => 0.2) };
+  const app = buildServer({
+    db, wallet, price, config: loadConfig(env as any),
+    treasuryNicks: () => 0, now: () => 1000,
+  });
+  db.close(); // force the claim path's DB query to throw
+  const res = await app.inject({ method: "POST", url: "/api/claim", payload: { address: VALID } });
+  expect(res.statusCode).toBe(500);
+  expect(res.json()).toEqual({ error: "internal error" });
+  expect(res.payload).not.toMatch(/database|sqlite|prepare|\.ts/i);
+});
+
 test("funding reports the configured cost and donate address", async () => {
   const app = make();
   const res = await app.inject({ method: "GET", url: "/api/funding" });

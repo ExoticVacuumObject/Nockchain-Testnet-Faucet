@@ -11,12 +11,15 @@ export function applyBalanceSnapshot(db: DB, currentNicks: number, at: number): 
     return 0; // first snapshot seeds the baseline; pre-existing balance is not a donation
   }
   const delta = currentNicks - Number(stored);
-  db.transaction(() => {
-    if (delta > 0) {
+  // Only ever raise the baseline (high-water mark). Lowering it on a dip would make a
+  // later recovery look like a fresh donation. Deltas are recorded only above the peak,
+  // so the bar under-counts after a real withdrawal rather than inventing phantoms.
+  if (delta > 0) {
+    db.transaction(() => {
       db.prepare("INSERT INTO donations(amount_nicks, recorded_at) VALUES(?,?)").run(delta, at);
-    }
-    kvSet(db, LAST_BALANCE_KEY, String(currentNicks));
-  })();
+      kvSet(db, LAST_BALANCE_KEY, String(currentNicks));
+    })();
+  }
   return delta > 0 ? delta : 0;
 }
 
