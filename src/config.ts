@@ -12,7 +12,7 @@ export interface Config {
   balanceApiUrl: string;
   priceUrl: string;
   walletBin: string;
-  nodeSocket: string;
+  walletGrpcPort: number;
   treasuryPollMs: number;
   donationPollMs: number;
 }
@@ -45,7 +45,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     balanceApiUrl: req(env, "BALANCE_API_URL"),
     priceUrl: req(env, "PRICE_URL"),
     walletBin: req(env, "WALLET_BIN"),
-    nodeSocket: req(env, "NODE_SOCKET"),
+    walletGrpcPort: num(env, "WALLET_GRPC_PORT"),
     treasuryPollMs: num(env, "TREASURY_POLL_MS"),
     donationPollMs: num(env, "DONATION_POLL_MS"),
   };
@@ -53,6 +53,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   if (cfg.cooldownHours <= 0) throw new Error("COOLDOWN_HOURS must be greater than 0");
   if (cfg.monthlyCostUsd <= 0) throw new Error("MONTHLY_COST_USD must be greater than 0");
   if (cfg.nicksPerNock <= 0) throw new Error("NICKS_PER_NOCK must be greater than 0");
+  if (cfg.walletGrpcPort <= 0) throw new Error("WALLET_GRPC_PORT must be greater than 0");
   if (cfg.treasuryPollMs <= 0) throw new Error("TREASURY_POLL_MS must be greater than 0");
   if (cfg.donationPollMs <= 0) throw new Error("DONATION_POLL_MS must be greater than 0");
   if (cfg.treasuryFloor >= cfg.treasuryCeil) {

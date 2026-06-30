@@ -19,9 +19,13 @@ clearPendingClaims(db); // release orphaned reserves left by any prior crash
 
 const wallet = makeWallet({
   walletBin: cfg.walletBin,
-  nodeSocket: cfg.nodeSocket,
-  faucetPkh: cfg.faucetPkh,
+  grpcPort: cfg.walletGrpcPort,
   nicksPerNock: cfg.nicksPerNock,
+});
+
+// Ensure the node tracks the faucet address so coinbase notes are visible to the wallet.
+wallet.watchAddress(cfg.faucetPkh).catch((err) => {
+  console.error(`watch address: ${err instanceof Error ? err.message : String(err)}`);
 });
 
 // Miner invocation is integration-determined (plan Task 2); supplied via env.

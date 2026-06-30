@@ -11,45 +11,65 @@ const defaultRun: Runner = (bin, args) =>
   });
 
 export interface Wallet {
-  send(address: string, amountNock: number): Promise<string>;
   treasuryNicks(): Promise<number>;
+  send(address: string, amountNock: number): Promise<string>;
+  watchAddress(pkh: string): Promise<void>;
 }
 
 interface WalletCfg {
   walletBin: string;
-  nodeSocket: string;
-  faucetPkh: string;
+  grpcPort: number;
   nicksPerNock: number;
   run?: Runner;
 }
 
-// Command construction and parsing. Flags are provisional until confirmed against
-// the live fakenet CLI; keep all CLI-specific strings inside these four functions.
-function buildSendArgs(cfg: WalletCfg, address: string, amountNock: number): string[] {
-  return ["--socket", cfg.nodeSocket, "send", "--to", address, "--amount", String(amountNock)];
+// Global flags to reach the local fakenet node's PRIVATE gRPC. These are top-level
+// options, so they precede the subcommand.
+function conn(cfg: WalletCfg): string[] {
+  return ["--client", "private", "--private-grpc-server-port", String(cfg.grpcPort)];
 }
-function buildBalanceArgs(cfg: WalletCfg): string[] {
-  return ["--socket", cfg.nodeSocket, "list-notes-by-address", cfg.faucetPkh];
+
+// `show-balance` prints a summary that includes the line: "- Balance: <nicks> nicks".
+function parseBalanceNicks(stdout: string): number {
+  const m = stdout.match(/Balance:\s*(\d+)\s*nicks/i);
+  if (!m) throw new Error(`could not parse balance from: ${stdout.slice(-200)}`);
+  return Number(m[1]);
 }
-function parseTxid(stdout: string): string {
-  const m = stdout.match(/txid:\s*(\S+)/i);
-  if (!m) throw new Error(`could not parse txid from: ${stdout.slice(0, 200)}`);
+
+// `create-tx` builds and signs a transaction and surfaces the path of the tx file that
+// `send-tx` then broadcasts. The exact path-surfacing is confirmed on the first live send.
+function parseTxFile(stdout: string): string {
+  const m = stdout.match(/([^\s'"]+\.tx)\b/);
+  if (!m) throw new Error(`could not find tx file in: ${stdout.slice(-200)}`);
   return m[1];
 }
-function parseTotalNicks(stdout: string): number {
-  const m = stdout.match(/total:\s*(\d+)/i);
-  if (!m) throw new Error(`could not parse balance from: ${stdout.slice(0, 200)}`);
-  return Number(m[1]);
+
+// `send-tx` reports the broadcast transaction id.
+function parseTxid(stdout: string): string {
+  const m = stdout.match(/(?:txid|transaction id|tx id)\b[:\s]+([A-Za-z0-9]+)/i);
+  if (!m) throw new Error(`could not parse txid from: ${stdout.slice(-200)}`);
+  return m[1];
 }
 
 export function makeWallet(cfg: WalletCfg): Wallet {
   const run = cfg.run ?? defaultRun;
   return {
-    async send(address, amountNock) {
-      return parseTxid(await run(cfg.walletBin, buildSendArgs(cfg, address, amountNock)));
-    },
     async treasuryNicks() {
-      return parseTotalNicks(await run(cfg.walletBin, buildBalanceArgs(cfg)));
+      return parseBalanceNicks(await run(cfg.walletBin, [...conn(cfg), "show-balance"]));
+    },
+    async send(address, amountNock) {
+      const nicks = amountNock * cfg.nicksPerNock;
+      const created = await run(cfg.walletBin, [
+        ...conn(cfg),
+        "create-tx",
+        "--recipient",
+        `${address}:${nicks}`,
+      ]);
+      const broadcast = await run(cfg.walletBin, [...conn(cfg), "send-tx", parseTxFile(created)]);
+      return parseTxid(broadcast);
+    },
+    async watchAddress(pkh) {
+      await run(cfg.walletBin, [...conn(cfg), "watch", "address", pkh]);
     },
   };
 }

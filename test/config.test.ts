@@ -6,7 +6,7 @@ const base = {
   TREASURY_FLOOR: "500000", TREASURY_CEIL: "1000000",
   DONATE_ADDRESS: "9Wz", MONTHLY_COST_USD: "6", NICKS_PER_NOCK: "65536",
   DB_PATH: "./faucet.db", FAUCET_PKH: "pkh1", BALANCE_API_URL: "http://x",
-  PRICE_URL: "http://p", WALLET_BIN: "nockchain-wallet", NODE_SOCKET: "./n.sock",
+  PRICE_URL: "http://p", WALLET_BIN: "nockchain-wallet", WALLET_GRPC_PORT: "5556",
   TREASURY_POLL_MS: "60000", DONATION_POLL_MS: "300000",
 };
 

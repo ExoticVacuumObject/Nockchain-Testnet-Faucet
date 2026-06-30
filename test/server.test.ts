@@ -9,13 +9,13 @@ const env = {
   TREASURY_FLOOR: "500000", TREASURY_CEIL: "1000000",
   DONATE_ADDRESS: VALID, MONTHLY_COST_USD: "6", NICKS_PER_NOCK: "65536",
   DB_PATH: ":memory:", FAUCET_PKH: "pk", BALANCE_API_URL: "http://x",
-  PRICE_URL: "http://p", WALLET_BIN: "nw", NODE_SOCKET: "s",
+  PRICE_URL: "http://p", WALLET_BIN: "nw", WALLET_GRPC_PORT: "5556",
   TREASURY_POLL_MS: "1000", DONATION_POLL_MS: "1000",
 };
 
 function make() {
   const db = openDb(":memory:");
-  const wallet = { send: vi.fn(async () => "tx1"), treasuryNicks: vi.fn() };
+  const wallet = { send: vi.fn(async () => "tx1"), treasuryNicks: vi.fn(), watchAddress: vi.fn() };
   const price = { get: vi.fn(async () => 0.2) };
   return buildServer({
     db, wallet, price, config: loadConfig(env as any),
@@ -52,7 +52,7 @@ test("second claim from same address returns 429 with retryAfter", async () => {
 
 test("stats reports the cached treasury without calling the wallet", async () => {
   const db = openDb(":memory:");
-  const wallet = { send: vi.fn(), treasuryNicks: vi.fn() };
+  const wallet = { send: vi.fn(), treasuryNicks: vi.fn(), watchAddress: vi.fn() };
   const price = { get: vi.fn(async () => 0.2) };
   const app = buildServer({
     db, wallet, price, config: loadConfig(env as any),
@@ -65,7 +65,7 @@ test("stats reports the cached treasury without calling the wallet", async () =>
 
 test("an unexpected route error returns a generic 500 with no internal detail", async () => {
   const db = openDb(":memory:");
-  const wallet = { send: vi.fn(async () => "tx1"), treasuryNicks: vi.fn() };
+  const wallet = { send: vi.fn(async () => "tx1"), treasuryNicks: vi.fn(), watchAddress: vi.fn() };
   const price = { get: vi.fn(async () => 0.2) };
   const app = buildServer({
     db, wallet, price, config: loadConfig(env as any),
